@@ -1,12 +1,20 @@
 <script lang="ts">
 	import { beforeUpdate, onDestroy, onMount } from 'svelte';
+	import { randomAnimation } from './animations';
 	let container: HTMLDivElement;
 
 	onMount(() => {
-		import('./animations').then((module) => {
-			module.default(container);
-		});
+		random_animation();
 	});
+
+	let removeOldAnimation = () => {};
+
+	const random_animation = async () => {
+		removeOldAnimation();
+		const anim = await randomAnimation();
+		const controls = anim.default(container);
+		removeOldAnimation = controls.stop;
+	};
 
 	onDestroy(() => {
 		container && container.dispatchEvent(new Event('destroy'));
