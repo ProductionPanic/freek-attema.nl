@@ -14,8 +14,6 @@ const config = {
 		adapter: adapter({
 			out: 'build',
 			precompress: true,
-			polyfill: true,
-			envPrefix: 'SVELTE_KIT_'
 		})
 	}
 };
