@@ -11,7 +11,7 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"lint": "prettier --plugin-search-dir . --check .",
 		"format": "prettier --plugin-search-dir . --write .",
-		"start": "svelte-kit start"
+		"start": "node ./entry.cjs"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-node": "^1.3.1",
