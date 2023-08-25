@@ -47,67 +47,39 @@ varying vec2 vUvs;
 uniform sampler2D noise;
 uniform float time;
 
-// Distance function. Just calculates the height (z) from x,y plane with really simple length check.
-// Its not exact as there could be shorter distances.
-vec2 dist(vec3 p)
-{
-    float id = floor(p.x)+floor(p.y);
-    id = mod(id, 2.);
-    float h = texture2D(noise, vec2(p.x, p.y)*0.04).r*5.1;
-    return vec2(h-p.z,id);
+vec3 palette( float t ) {
+    vec3 a = vec3(0.5, 0.5, 0.5);
+    vec3 b = vec3(0.5, 0.5, 0.5);
+    vec3 c = vec3(1.0, 1.0, 1.0);
+    vec3 d = vec3(0.263,0.416,0.557);
+
+    return a + b*cos( 6.28318*(c*t+d) );
 }
 
-//Light calculation.
-vec3 calclight(vec3 p, vec3 rd)
-{
-    vec2 eps = vec2( 0., 0.001);
-    vec3 n = normalize( vec3(
-    dist(p+eps.yxx).x - dist(p-eps.yxx).x,
-    dist(p+eps.xyx).x - dist(p-eps.xyx).x,
-    dist(p+eps.xxy).x - dist(p-eps.xxy).x
-    ));
-
-    vec3 d = vec3( max( 0., dot( -rd ,n)));
-
-    return d;
-}
-
-void main()
-{
+//https://www.shadertoy.com/view/mtyGWy
+void main( ) {
     vec2 uv = vec2(vUvs.x,1.-vUvs.y);
-    uv *=2.;
-    uv-=1.;
+    vec2 uv0 = uv;
+    vec3 finalColor = vec3(0.0);
 
-    vec3 cam = vec3(0.,time -2., -3.);
-    vec3 target = vec3(sin(time)*0.1, time+cos(time)+2., 0. );
-    float fov = 2.2;
-    vec3 forward = normalize( target - cam);
-    vec3 up = normalize(cross( forward, vec3(0., 1.,0.)));
-    vec3 right = normalize( cross( up, forward));
-    vec3 raydir = normalize(vec3( uv.x *up + uv.y * right + fov*forward));
+    for (float i = 0.0; i < 4.0; i++) {
+        uv = fract(uv * 1.5) - 0.5;
 
-    //Do the raymarch
-    vec3 col = vec3(0.);
-    float t = 0.;
-    for( int i = 0; i < 100; i++)
-    {
-    vec3 p = t * raydir + cam;
-    vec2 d = dist(p);
-    t+=d.x*0.5;//Jump only half of the distance as height function used is not really the best for heightmaps.
-    if(d.x < 0.001)
-    {
-        vec3 bc = d.y < 0.5 ? vec3(1, 0, .3) :
-                vec3(0.3,0.0, 1.0);
-        col = vec3( 1.) * calclight(p, raydir) * (1. - t/150.) *bc;
-        break;
+        float d = length(uv) * exp(-length(uv0));
+
+        vec3 col = palette(length(uv0) + i*.4 + time*.4);
+
+        d = sin(d*8. + time)/8.;
+        d = abs(d);
+
+        d = pow(0.01 / d, 1.2);
+
+        finalColor += col * d;
     }
-    if(t > 1000.)
-    {
-        break;
-    }
-    }
-    gl_FragColor = vec4(col, 1.);
-}`;
+
+    gl_FragColor = vec4(finalColor, 1.0);
+}
+`;
 
     const uniforms = {
         noise: PIXI.Texture.from('https://pixijs.com/assets/perlin.jpg'),
@@ -124,10 +96,8 @@ void main()
 
     // make it fit the screen
     quad.position.set(app.screen.width / 2, app.screen.height / 2);
-    quad.scale.set(
-        Math.max(app.screen.width, app.screen.height) / 200,
-        Math.max(app.screen.width, app.screen.height) / 200,
-    )
+    quad.height = window.innerHeight;
+    quad.width = window.innerWidth;
 
     // add it to the stage
     app.stage.addChild(quad);

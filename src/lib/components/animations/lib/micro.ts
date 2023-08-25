@@ -17,7 +17,9 @@ export default pixiAnimation((app: PIXI.Application) => {
                 1, 1,
                 0, 1], // u, v
             2) // the size of the attribute
-        .addIndex([0, 1, 2, 0, 2, 3]);
+        .addIndex(
+            [0, 1, 2, 0, 2, 3]
+        );
 
     const vertexSrc = `
 
@@ -30,11 +32,14 @@ export default pixiAnimation((app: PIXI.Application) => {
     uniform mat3 projectionMatrix;
 
     varying vec2 vUvs;
+    uniform sampler2D iChannel0;
 
     void main() {
 
         vUvs = aUvs;
         gl_Position = vec4((projectionMatrix * translationMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
+
+
 
     }`;
 
@@ -42,77 +47,49 @@ export default pixiAnimation((app: PIXI.Application) => {
 //Based on this: https://www.shadertoy.com/view/wtlSWX
 precision mediump float;
 
+// fragment coords
 varying vec2 vUvs;
-
-uniform sampler2D noise;
+// time
 uniform float time;
+// resolution
+uniform vec2 resolution;
+// mouse    
+uniform vec3 mouse;
 
-// Distance function. Just calculates the height (z) from x,y plane with really simple length check.
-// Its not exact as there could be shorter distances.
-vec2 dist(vec3 p)
+
+float gyroid (vec3 seed) { return dot(sin(seed),cos(seed.yzx)); }
+
+float fbm (vec3 seed)
 {
-    float id = floor(p.x)+floor(p.y);
-    id = mod(id, 2.);
-    float h = texture2D(noise, vec2(p.x, p.y)*0.04).r*5.1;
-    return vec2(h-p.z,id);
+    float result = 0., a = .5;
+    for (int i = 0; i < 6; ++i) {
+        a /= 2.;
+        seed.x += time*.01/a;
+        seed.z += result*.5;
+        result += gyroid(seed/a)*a;
+    }
+    return result;
 }
 
-//Light calculation.
-vec3 calclight(vec3 p, vec3 rd)
-{
-    vec2 eps = vec2( 0., 0.001);
-    vec3 n = normalize( vec3(
-    dist(p+eps.yxx).x - dist(p-eps.yxx).x,
-    dist(p+eps.xyx).x - dist(p-eps.xyx).x,
-    dist(p+eps.xxy).x - dist(p-eps.xxy).x
-    ));
+// round
+float round (float x) { return floor(x+.5); }
 
-    vec3 d = vec3( max( 0., dot( -rd ,n)));
-
-    return d;
-}
 
 void main()
 {
-    vec2 uv = vec2(vUvs.x,1.-vUvs.y);
-    uv *=2.;
-    uv-=1.;
-
-    vec3 cam = vec3(0.,time -2., -3.);
-    vec3 target = vec3(sin(time)*0.1, time+cos(time)+2., 0. );
-    float fov = 2.2;
-    vec3 forward = normalize( target - cam);
-    vec3 up = normalize(cross( forward, vec3(0., 1.,0.)));
-    vec3 right = normalize( cross( up, forward));
-    vec3 raydir = normalize(vec3( uv.x *up + uv.y * right + fov*forward));
-
-    //Do the raymarch
-    vec3 col = vec3(0.);
-    float t = 0.;
-    for( int i = 0; i < 100; i++)
-    {
-    vec3 p = t * raydir + cam;
-    vec2 d = dist(p);
-    t+=d.x*0.5;//Jump only half of the distance as height function used is not really the best for heightmaps.
-    if(d.x < 0.001)
-    {
-        // random color based on time
-        vec3 bc1 = vec3(sin(time * 0.1),cos(time * 0.2),sin(time * 0.3));
-        vec3 bc2 = vec3(sin(time * 0.2),cos(time * 0.3),sin(time * 0.1));
-        vec3 bc3 = vec3(sin(time * 0.3),cos(time * 0.1),sin(time * 0.2));
-        vec3 bc4 = vec3(sin(time * 0.1),cos(time * 0.3),sin(time * 0.2));
-        vec3 bc = d.y < 0.25 ? bc1 : d.y < 0.5 ? bc2 : d.y < 0.75 ? bc3 : bc4; 
-        col = vec3( 1.) * calclight(p, raydir) * (1. - t/150.) *bc;
-        break;
-    }
-    if(t > 1000.)
-    {
-        break;
-    }
-    }
-    gl_FragColor = vec4(col, 1.);
+    vec2 R = resolution.xy;
+    vec2 p =vec2(vUvs.x,1.-vUvs.y);
+    float count = 2.;
+    float shades = 3.;
+    float shape = abs(fbm(vec3(p*.5, 0.)))-time*.1-p.x*.1;
+    float gradient = fract(shape*count+p.x);
+    vec3 blue = vec3(.459,.765,1.);
+    vec3 tint = mix(blue*mix(.6,.8,gradient), vec3(1), round(pow(gradient, 4.)*shades)/shades);
+    vec3 color = mix(tint, blue*.2, mod(floor(shape*count), 2.));
+    gl_FragColor = vec4(color,1.0);
 }
 `;
+
 
     const uniforms = {
         noise: PIXI.Texture.from('https://pixijs.com/assets/perlin.jpg'),
@@ -131,7 +108,6 @@ void main()
     quad.position.set(app.screen.width / 2, app.screen.height / 2);
     quad.width = window.innerWidth;
     quad.height = window.innerHeight;
-
     // add it to the stage
     app.stage.addChild(quad);
 
@@ -141,5 +117,7 @@ void main()
     app.ticker.add((delta) => {
         time += 1 / 60;
         quad.shader.uniforms.time = time;
+        quad.shader.uniforms.resolution = [window.innerWidth, window.innerHeight];
+        quad.shader.uniforms.mouse = [window.innerWidth / 2, window.innerHeight / 2, 0];
     });
 });

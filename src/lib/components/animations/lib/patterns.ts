@@ -17,7 +17,9 @@ export default pixiAnimation((app: PIXI.Application) => {
                 1, 1,
                 0, 1], // u, v
             2) // the size of the attribute
-        .addIndex([0, 1, 2, 0, 2, 3]);
+        .addIndex(
+            [0, 1, 2, 0, 2, 3]
+        );
 
     const vertexSrc = `
 
@@ -42,77 +44,49 @@ export default pixiAnimation((app: PIXI.Application) => {
 //Based on this: https://www.shadertoy.com/view/wtlSWX
 precision mediump float;
 
+// fragment coords
 varying vec2 vUvs;
-
-uniform sampler2D noise;
+// time
 uniform float time;
+// resolution
+uniform vec2 iResolution;
 
-// Distance function. Just calculates the height (z) from x,y plane with really simple length check.
-// Its not exact as there could be shorter distances.
-vec2 dist(vec3 p)
-{
-    float id = floor(p.x)+floor(p.y);
-    id = mod(id, 2.);
-    float h = texture2D(noise, vec2(p.x, p.y)*0.04).r*5.1;
-    return vec2(h-p.z,id);
-}
-
-//Light calculation.
-vec3 calclight(vec3 p, vec3 rd)
-{
-    vec2 eps = vec2( 0., 0.001);
-    vec3 n = normalize( vec3(
-    dist(p+eps.yxx).x - dist(p-eps.yxx).x,
-    dist(p+eps.xyx).x - dist(p-eps.xyx).x,
-    dist(p+eps.xxy).x - dist(p-eps.xxy).x
-    ));
-
-    vec3 d = vec3( max( 0., dot( -rd ,n)));
-
-    return d;
-}
 
 void main()
 {
+    float value;
     vec2 uv = vec2(vUvs.x,1.-vUvs.y);
     uv *=2.;
     uv-=1.;
+    float rot = radians(45.0); // radians(45.0*sin(time));
+    mat2 m = mat2(cos(rot), -sin(rot), sin(rot), cos(rot));
+    vec2 pos = 10.0*uv;
+    vec2 rep = fract(pos);
+    float dist = 2.0*min(min(rep.x, 1.0-rep.x), min(rep.y, 1.0-rep.y));
+    float squareDist = length((floor(pos)+vec2(0.5)) - vec2(5.0) );
 
-    vec3 cam = vec3(0.,time -2., -3.);
-    vec3 target = vec3(sin(time)*0.1, time+cos(time)+2., 0. );
-    float fov = 2.2;
-    vec3 forward = normalize( target - cam);
-    vec3 up = normalize(cross( forward, vec3(0., 1.,0.)));
-    vec3 right = normalize( cross( up, forward));
-    vec3 raydir = normalize(vec3( uv.x *up + uv.y * right + fov*forward));
+    float edge = sin(time-squareDist*0.5)*0.5+0.5;
 
-    //Do the raymarch
-    vec3 col = vec3(0.);
-    float t = 0.;
-    for( int i = 0; i < 100; i++)
-    {
-    vec3 p = t * raydir + cam;
-    vec2 d = dist(p);
-    t+=d.x*0.5;//Jump only half of the distance as height function used is not really the best for heightmaps.
-    if(d.x < 0.001)
-    {
-        // random color based on time
-        vec3 bc1 = vec3(sin(time * 0.1),cos(time * 0.2),sin(time * 0.3));
-        vec3 bc2 = vec3(sin(time * 0.2),cos(time * 0.3),sin(time * 0.1));
-        vec3 bc3 = vec3(sin(time * 0.3),cos(time * 0.1),sin(time * 0.2));
-        vec3 bc4 = vec3(sin(time * 0.1),cos(time * 0.3),sin(time * 0.2));
-        vec3 bc = d.y < 0.25 ? bc1 : d.y < 0.5 ? bc2 : d.y < 0.75 ? bc3 : bc4; 
-        col = vec3( 1.) * calclight(p, raydir) * (1. - t/150.) *bc;
-        break;
-    }
-    if(t > 1000.)
-    {
-        break;
-    }
-    }
-    gl_FragColor = vec4(col, 1.);
+    edge = (time-squareDist*0.5)*0.5;
+    edge = 2.0*fract(edge*0.5);
+    //value = 2.0*abs(dist-0.5);
+    //value = pow(dist, 2.0);
+    value = fract (dist*2.0);
+    value = mix(value, 1.0-value, step(1.0, edge));
+    //value *= 1.0-0.5*edge;
+    edge = pow(abs(1.0-edge), 2.0);
+
+    //edge = abs(1.0-edge);
+    value = smoothstep( edge-0.05, edge, 0.95*value);
+
+
+    value += squareDist*.1;
+    //fragColor = vec4(value);
+    gl_FragColor = mix(vec4(1.0,1.0,1.0,1.0),vec4(0.5,0.75,1.0,1.0), value);
+    gl_FragColor.a = 0.25*clamp(value, 0.0, 1.0);
 }
 `;
+
 
     const uniforms = {
         noise: PIXI.Texture.from('https://pixijs.com/assets/perlin.jpg'),
@@ -131,7 +105,6 @@ void main()
     quad.position.set(app.screen.width / 2, app.screen.height / 2);
     quad.width = window.innerWidth;
     quad.height = window.innerHeight;
-
     // add it to the stage
     app.stage.addChild(quad);
 

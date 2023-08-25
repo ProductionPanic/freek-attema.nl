@@ -9,7 +9,7 @@ export function pixiAnimation(cb: (app: Pixi.Application) => void): Function {
             app.destroy(true, { children: true, texture: true, baseTexture: true });
         });
 
-        document.body.appendChild(app.view as HTMLCanvasElement);
+        container.appendChild(app.view as HTMLCanvasElement);
 
         cb(app);
 
@@ -27,9 +27,12 @@ export function randomAnimation(): Promise<{
     }
 }> {
     const animations = [
-        // 'terrain',
-        // 'terrain2',
-        'terrain3',
+        "micro",
+        "mirror",
+        "patterns",
+        "terrain",
+        "warp",
+        "woos",
     ]
 
     const animation = animations[Math.floor(Math.random() * animations.length)];
