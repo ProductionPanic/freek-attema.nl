@@ -27,12 +27,12 @@ export function randomAnimation(): Promise<{
     }
 }> {
     const animations = [
-        // 'terrain',
-        // 'terrain2',
+        'terrain',
+        'terrain2',
         'terrain3',
     ]
 
     const animation = animations[Math.floor(Math.random() * animations.length)];
 
-    return import(`./${animation}`)
+    return import(`./lib/${animation}.ts`)
 }

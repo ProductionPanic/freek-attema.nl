@@ -1,5 +1,5 @@
 import * as PIXI from 'pixi.js';
-import { pixiAnimation } from '.';
+import { pixiAnimation } from '..';
 
 export default pixiAnimation((app: PIXI.Application) => {
 

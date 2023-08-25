@@ -1,5 +1,5 @@
 import * as PIXI from 'pixi.js';
-import { pixiAnimation } from '.';
+import { pixiAnimation } from '..';
 
 export default pixiAnimation((app: PIXI.Application) => {
 
@@ -96,12 +96,8 @@ void main()
     t+=d.x*0.5;//Jump only half of the distance as height function used is not really the best for heightmaps.
     if(d.x < 0.001)
     {
-        // random color based on time
-        vec3 bc1 = vec3(sin(time * 0.1),cos(time * 0.2),sin(time * 0.3));
-        vec3 bc2 = vec3(sin(time * 0.2),cos(time * 0.3),sin(time * 0.1));
-        vec3 bc3 = vec3(sin(time * 0.3),cos(time * 0.1),sin(time * 0.2));
-        vec3 bc4 = vec3(sin(time * 0.1),cos(time * 0.3),sin(time * 0.2));
-        vec3 bc = d.y < 0.25 ? bc1 : d.y < 0.5 ? bc2 : d.y < 0.75 ? bc3 : bc4; 
+        vec3 bc = d.y < 0.5 ? vec3(1, 0, .3) :
+                vec3(0.3,0.0, 1.0);
         col = vec3( 1.) * calclight(p, raydir) * (1. - t/150.) *bc;
         break;
     }
