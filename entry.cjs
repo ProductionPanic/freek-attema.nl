@@ -1,5 +1,5 @@
 // entry.cjs
 async function loadApp() {
-    const { app } = await import("./build/index.js")
+    await import("./build/server/index"); // this is your normal entry file - (index.js, main.js, app.mjs etc.)
 }
 loadApp()
