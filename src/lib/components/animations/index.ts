@@ -27,8 +27,8 @@ export function randomAnimation(): Promise<{
     }
 }> {
     const animations = [
-        'terrain',
-        'terrain2',
+        // 'terrain',
+        // 'terrain2',
         'terrain3',
     ]
 
