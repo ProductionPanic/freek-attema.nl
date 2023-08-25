@@ -32,7 +32,7 @@ export function randomAnimation(): Promise<{
         "patterns",
         "terrain",
         "warp",
-        "woos",
+        "woosh",
     ]
 
     const animation = animations[Math.floor(Math.random() * animations.length)];
