@@ -30,7 +30,7 @@
 	{#key i}
 		<button
 			class="next"
-			in:fly={{ x: '200%', duration: 200, delay: 4000 }}
+			in:fly={{ x: '200%', duration: 200, delay: 1000 }}
 			out:fly={{ x: '200%', duration: 200 }}
 			on:click={random_animation}
 		>
